@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, FolderKanban, Grid, Database, CheckSquare, Settings, Menu, X, Sparkles, Book, MessageCircle, Archive } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, Grid, Database, CheckSquare, Settings, Menu, X, Sparkles, Book, MessageCircle, Archive, Calendar } from 'lucide-react';
 
 const Layout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -11,6 +11,7 @@ const Layout: React.FC = () => {
     { path: '/projects', label: 'Projetos (Projects)', icon: FolderKanban },
     { path: '/areas', label: 'Áreas (Areas)', icon: Grid },
     { path: '/resources', label: 'Recursos (Resources)', icon: Database },
+    { path: '/agenda', label: 'Agenda (Secretaria)', icon: Calendar },
     { path: '/archive', label: 'Arquivo (Archive)', icon: Archive },
     { type: 'divider' }, // Visual separator logic handling below
     { path: '/chat', label: 'Brain Chat (AI)', icon: MessageCircle },

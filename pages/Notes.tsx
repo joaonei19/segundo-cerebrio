@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { KnowledgeItem, Area } from '../types';
+import MDEditor from '@uiw/react-md-editor';
 import { Plus, Trash2, Link as LinkIcon, Cloud, Tag, Inbox, FolderKanban, Target, AlertTriangle, Search, Archive, ArrowDownToLine } from 'lucide-react';
 
 interface KnowledgeBaseProps {
@@ -300,12 +301,18 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ items, setItems, areas })
                   </div>
               )}
 
-              <textarea
-                value={activeItem.content}
-                onChange={(e) => updateActiveItem({ content: e.target.value })}
-                placeholder="Escreva aqui suas anotações..."
-                className="flex-1 resize-none border-none focus:ring-0 text-slate-600 leading-relaxed text-lg px-0 placeholder:text-slate-300 bg-transparent font-medium"
-              />
+              <div data-color-mode="light" className="flex-1 overflow-hidden flex flex-col pt-2">
+                  <MDEditor
+                    value={activeItem.content}
+                    onChange={(val) => updateActiveItem({ content: val || '' })}
+                    height="100%"
+                    className="flex-1 w-full !border-0"
+                    visibleDragbar={false}
+                    previewOptions={{
+                      className: 'prose prose-sm max-w-none text-slate-700'
+                    }}
+                  />
+              </div>
             </div>
             
             {/* Footer */}

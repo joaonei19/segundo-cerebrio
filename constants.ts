@@ -1,4 +1,4 @@
-import { Area, NoteTemplate, ReviewChecklist, Resource, KnowledgeItem } from './types';
+import { Area, NoteTemplate, ReviewChecklist, Resource, KnowledgeItem, AgendaEvent } from './types';
 
 export const INITIAL_AREAS: Area[] = [
   { id: '1', title: 'Carreira & Negócios', icon: 'Briefcase', description: 'Projetos profissionais, Marketing, E-commerce', color: 'bg-blue-500' },
@@ -174,5 +174,23 @@ export const REVIEW_RITUALS: ReviewChecklist[] = [
       'Verificar assinaturas e gastos recorrentes',
       'Limpeza digital (arquivos de download, desktop)'
     ]
+  }
+];
+
+export const INITIAL_EVENTS: AgendaEvent[] = [
+  {
+    id: 'e1',
+    title: 'Reunião de Alinhamento com Equipe',
+    date: new Date().toISOString().split('T')[0], // Today
+    time: '14:30',
+    type: 'Meeting',
+    description: 'Discutir próximos passos do Q4.'
+  },
+  {
+    id: 'e2',
+    title: 'Renovar domínio do site',
+    date: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0], // In 3 days
+    type: 'Reminder',
+    description: 'Vencimento na HostGator.'
   }
 ];

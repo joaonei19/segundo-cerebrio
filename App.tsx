@@ -11,10 +11,11 @@ import KnowledgeBase from './pages/Notes';
 import BrainChat from './pages/BrainChat';
 import Archive from './pages/Archive';
 import AssistantPanel from './components/AssistantPanel';
+import Agenda from './pages/Agenda';
 
 // Initial Data Import
-import { INITIAL_AREAS, INITIAL_ITEMS, INITIAL_RESOURCES } from './constants';
-import { Area, Resource, KnowledgeItem } from './types';
+import { INITIAL_AREAS, INITIAL_ITEMS, INITIAL_RESOURCES, INITIAL_EVENTS } from './constants';
+import { Area, Resource, KnowledgeItem, AgendaEvent } from './types';
 
 const App: React.FC = () => {
   // --- PERSISTENCE LOGIC START ---
@@ -46,6 +47,14 @@ const App: React.FC = () => {
     } catch (e) { return INITIAL_RESOURCES; }
   });
 
+  // 4. Load Events
+  const [events, setEvents] = useState<AgendaEvent[]>(() => {
+    try {
+        const savedEvents = localStorage.getItem('sb-events');
+        return savedEvents ? JSON.parse(savedEvents) : INITIAL_EVENTS;
+    } catch (e) { return INITIAL_EVENTS; }
+  });
+
   // --- SAVE EFFECTS ---
   
   // Whenever 'items' changes, save to LocalStorage
@@ -63,6 +72,11 @@ const App: React.FC = () => {
     localStorage.setItem('sb-resources', JSON.stringify(resources));
   }, [resources]);
 
+  // Whenever 'events' changes, save to LocalStorage
+  useEffect(() => {
+    localStorage.setItem('sb-events', JSON.stringify(events));
+  }, [events]);
+
   // --- PERSISTENCE LOGIC END ---
 
   // Derived state for projects (any item that has isProject flag)
@@ -72,7 +86,7 @@ const App: React.FC = () => {
     <HashRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<Dashboard projects={projects} areas={areas} />} />
+          <Route index element={<Dashboard />} />
           
           <Route path="projects" element={<Projects projects={items} setProjects={setItems} />} />
           
@@ -82,6 +96,7 @@ const App: React.FC = () => {
 
           <Route path="areas" element={<Areas areas={areas} setAreas={setAreas} />} />
           <Route path="resources" element={<Resources resources={resources} items={items} />} />
+          <Route path="agenda" element={<Agenda items={items} events={events} setEvents={setEvents} />} />
           <Route path="archive" element={<Archive items={items} setItems={setItems} />} />
           <Route path="templates" element={<Templates />} />
           <Route path="reviews" element={<Reviews />} />

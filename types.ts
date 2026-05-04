@@ -38,6 +38,15 @@ export interface ReviewChecklist {
   items: string[];
 }
 
+export interface AgendaEvent {
+  id: string;
+  title: string;
+  date: string; // ISO date string
+  time?: string; // HH:mm format optional
+  type: 'Meeting' | 'Reminder' | 'Deadline' | 'Other';
+  description?: string;
+}
+
 // The unified Data Structure
 export interface KnowledgeItem {
   id: string;
