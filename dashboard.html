@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Dashboard - Estático</title>
+    <style>
+      body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;sans-serif;background:#f8fafc;color:#0f172a;padding:24px}
+      .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px}
+      .card{background:#fff;border:1px solid #e6edf3;padding:16px;border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,0.04)}
+      h1{margin:0 0 8px 0;font-size:22px}
+      .muted{color:#64748b;font-size:13px}
+      table{width:100%;border-collapse:collapse}
+      th,td{padding:8px 10px;border-bottom:1px solid #eef2f7;text-align:left;font-size:13px}
+      .controls{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+      input[type=text]{padding:8px;border-radius:8px;border:1px solid #dbeafe;min-width:320px}
+      button{padding:8px 12px;border-radius:8px;border:0;background:#4f46e5;color:#fff;cursor:pointer}
+      .small{font-size:13px}
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <div>
+        <h1>Dashboard (HTML Estático)</h1>
+        <div class="muted">Carrega dados via endpoint do servidor e renderiza gráficos.</div>
+      </div>
+      <div class="small muted">Abra após rodar: <strong>npm run dev</strong></div>
+    </header>
+
+    <div class="controls">
+      <input id="filePath" type="text" placeholder="C:/Users/Joao/data/dados.xlsx" />
+      <button id="loadBtn">Atualizar</button>
+      <div id="status" class="muted small">Pronto</div>
+    </div>
+
+    <div class="grid" id="summaryCards">
+      <div class="card"><div class="muted">Total</div><div id="total" style="font-weight:700;font-size:22px">—</div></div>
+      <div class="card"><div class="muted">Média</div><div id="average" style="font-weight:700;font-size:22px">—</div></div>
+      <div class="card"><div class="muted">Registros</div><div id="count" style="font-weight:700;font-size:22px">—</div></div>
+      <div class="card"><div class="muted">Última Atualização</div><div id="lastUpdated" style="font-weight:700;font-size:14px">—</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin:0 0 12px 0">Dados</h3>
+      <div style="overflow-x:auto"><table id="dataTable"><thead></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3 style="margin:0 0 12px 0">Gráfico</h3>
+        <canvas id="barChart" height="140"></canvas>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 12px 0">Resumo Executivo</h3>
+        <div id="execSummary"></div>
+      </div>
+    </div>
+
+    <script>
+      const loadBtn = document.getElementById('loadBtn');
+      const statusEl = document.getElementById('status');
+      const filePathInput = document.getElementById('filePath');
+      const totalEl = document.getElementById('total');
+      const avgEl = document.getElementById('average');
+      const countEl = document.getElementById('count');
+      const lastEl = document.getElementById('lastUpdated');
+      const dataTable = document.getElementById('dataTable');
+      const execSummary = document.getElementById('execSummary');
+
+      let barChart;
+
+      function setStatus(t){ statusEl.textContent = t }
+
+      async function load(filePath){
+        try{
+          setStatus('Carregando...');
+          const url = `http://localhost:3000/api/dashboard/xls?filePath=${encodeURIComponent(filePath)}`;
+          const res = await fetch(url);
+          if(!res.ok) throw new Error(await res.text());
+          const data = await res.json();
+          renderData(data);
+          setStatus('Dados carregados');
+        }catch(err){
+          console.error(err);
+          setStatus('Erro: '+ (err.message||err));
+        }
+      }
+
+      function renderData(d){
+        // Summary
+        totalEl.textContent = Number(d.summary.total || 0).toLocaleString('pt-BR');
+        avgEl.textContent = Number(d.summary.average || 0).toLocaleString('pt-BR');
+        countEl.textContent = (d.metrics||[]).length;
+        lastEl.textContent = d.summary.lastUpdated ? new Date(d.summary.lastUpdated).toLocaleString('pt-BR') : '-';
+
+        // Table
+        const metrics = d.metrics || [];
+        const thead = dataTable.querySelector('thead');
+        const tbody = dataTable.querySelector('tbody');
+        thead.innerHTML = '';
+        tbody.innerHTML = '';
+
+        if(metrics.length>0){
+          const keys = Object.keys(metrics[0]);
+          const tr = document.createElement('tr');
+          keys.forEach(k=>{ const th=document.createElement('th'); th.textContent=k; tr.appendChild(th) });
+          thead.appendChild(tr);
+
+          metrics.forEach(row=>{
+            const r=document.createElement('tr');
+            keys.forEach(k=>{ const td=document.createElement('td'); td.textContent = (row[k]===null||row[k]===undefined)?'':String(row[k]); r.appendChild(td) });
+            tbody.appendChild(r);
+          })
+        }
+
+        // Chart: use first numeric key
+        if(metrics.length>0){
+          const first = metrics[0];
+          const numericKey = Object.keys(first).find(k=> typeof first[k] === 'number') || Object.keys(first)[1] || Object.keys(first)[0];
+          const labels = metrics.map(m => m[Object.keys(first)[0]] || '');
+          const values = metrics.map(m => Number(m[numericKey])||0);
+
+          const ctx = document.getElementById('barChart').getContext('2d');
+          if(barChart) barChart.destroy();
+          barChart = new Chart(ctx, {
+            type: 'bar',
+            data: { labels, datasets:[{label: numericKey, data: values, backgroundColor:'#4f46e5'}] },
+            options:{responsive:true,plugins:{legend:{display:false}}}
+          });
+
+          // Exec summary
+          execSummary.innerHTML = `
+            <div style="margin-bottom:8px">Métrica: <strong>${numericKey}</strong></div>
+            <div style="margin-bottom:6px">Maior: <strong>${Math.max(...values).toLocaleString('pt-BR')}</strong></div>
+            <div style="margin-bottom:6px">Menor: <strong>${Math.min(...values).toLocaleString('pt-BR')}</strong></div>
+          `;
+        } else {
+          execSummary.innerHTML = '<div class="muted">Sem métricas numéricas</div>';
+        }
+      }
+
+      loadBtn.addEventListener('click', ()=>{
+        const p = filePathInput.value.trim() || './data/dados.xlsx';
+        load(p);
+        localStorage.setItem('xls-path', p);
+      });
+
+      // If saved path in localStorage, populate
+      document.addEventListener('DOMContentLoaded', ()=>{
+        const saved = localStorage.getItem('xls-path');
+        if(saved) filePathInput.value = saved;
+      });
+    </script>
+  </body>
+</html>
