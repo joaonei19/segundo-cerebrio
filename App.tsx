@@ -12,6 +12,7 @@ import BrainChat from './pages/BrainChat';
 import Archive from './pages/Archive';
 import AssistantPanel from './components/AssistantPanel';
 import Agenda from './pages/Agenda';
+import OpenDashboardHtml from './components/OpenDashboardHtml';
 
 // Initial Data Import
 import { INITIAL_AREAS, INITIAL_ITEMS, INITIAL_RESOURCES, INITIAL_EVENTS } from './constants';
@@ -87,6 +88,7 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
+          <Route path="dashboard-html" element={<OpenDashboardHtml />} />
           
           <Route path="projects" element={<Projects projects={items} setProjects={setItems} />} />
           

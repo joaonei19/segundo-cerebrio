@@ -7,6 +7,7 @@ const Layout: React.FC = () => {
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/dashboard-html', label: 'Dashboard HTML', icon: LayoutDashboard },
     { path: '/kb', label: 'Base de Conhecimento', icon: Book },
     { path: '/projects', label: 'Projetos (Projects)', icon: FolderKanban },
     { path: '/areas', label: 'Áreas (Areas)', icon: Grid },
@@ -52,6 +53,22 @@ const Layout: React.FC = () => {
             }
             // TypeScript guard
             if (!item.path) return null;
+
+            if (item.path === '/dashboard-html') {
+              return (
+                <a
+                  key={item.path}
+                  href="/dashboard.html"
+                  target="_self"
+                  rel="noreferrer"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:bg-slate-800 hover:text-white"
+                >
+                  <item.icon size={18} />
+                  {item.label}
+                </a>
+              );
+            }
 
             return (
                 <NavLink
