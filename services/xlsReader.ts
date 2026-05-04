@@ -1,5 +1,8 @@
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx';
 import * as fs from 'fs';
+import * as path from 'path';
+
+export const DEFAULT_DATA_DIR = 'C:/Users/Joao/Documents/Relatório HD/relatorio-HD-Store/hdstore_updater/dados';
 
 export interface DashboardData {
   period: string;
@@ -32,22 +35,24 @@ export async function readXlsFile(filePath: string, sheetName?: string): Promise
       : workbook.Sheets[workbook.SheetNames[0]];
 
     // Converte para JSON
-    const rawData = XLSX.utils.sheet_to_json(sheet);
+    const rawData = XLSX.utils.sheet_to_json<Record<string, any>>(sheet);
 
     // Calcula período baseado nos dados
     const period = extractPeriod(rawData);
 
     // Formata métricas
-    const metrics = rawData.map(row => ({
-      ...row,
-      // Remove valores vazios
-      ...(Object.keys(row).reduce((acc: any, key) => {
-        if (row[key as keyof typeof row] !== '' && row[key as keyof typeof row] !== undefined) {
-          acc[key] = row[key as keyof typeof row];
+    const metrics = rawData.map((row) => {
+      const cleaned: Record<string, any> = {};
+
+      Object.keys(row).forEach((key) => {
+        const value = row[key];
+        if (value !== '' && value !== undefined && value !== null) {
+          cleaned[key] = value;
         }
-        return acc;
-      }, {}))
-    }));
+      });
+
+      return cleaned;
+    });
 
     // Calcula resumo
     const summary = calculateSummary(metrics);
@@ -64,6 +69,50 @@ export async function readXlsFile(filePath: string, sheetName?: string): Promise
     console.error('Erro ao ler arquivo XLS:', error);
     throw error;
   }
+}
+
+export function resolveLatestSpreadsheet(folderPath: string = DEFAULT_DATA_DIR): string {
+  if (!fs.existsSync(folderPath)) {
+    throw new Error(`Pasta não encontrada: ${folderPath}`);
+  }
+
+  const supportedExt = new Set(['.xlsx', '.xls', '.xlsm', '.ods']);
+  const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+  const candidates: string[] = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(folderPath, entry.name);
+    if (entry.isDirectory()) {
+      try {
+        const nested = fs.readdirSync(fullPath, { withFileTypes: true });
+        nested.forEach((nestedEntry) => {
+          if (nestedEntry.isFile() && supportedExt.has(path.extname(nestedEntry.name).toLowerCase())) {
+            candidates.push(path.join(fullPath, nestedEntry.name));
+          }
+        });
+      } catch {
+        // ignore unreadable subfolders
+      }
+      continue;
+    }
+
+    if (entry.isFile() && supportedExt.has(path.extname(entry.name).toLowerCase())) {
+      candidates.push(fullPath);
+    }
+  }
+
+  if (candidates.length === 0) {
+    throw new Error(`Nenhum arquivo Excel encontrado em: ${folderPath}`);
+  }
+
+  return candidates
+    .map((filePath) => ({ filePath, mtime: fs.statSync(filePath).mtime.getTime() }))
+    .sort((a, b) => b.mtime - a.mtime)[0].filePath;
+}
+
+export async function readLatestXlsFromFolder(folderPath: string = DEFAULT_DATA_DIR, sheetName?: string): Promise<DashboardData> {
+  const latestFile = resolveLatestSpreadsheet(folderPath);
+  return readXlsFile(latestFile, sheetName);
 }
 
 /**

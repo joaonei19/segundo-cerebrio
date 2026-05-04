@@ -3,7 +3,8 @@ import { createServer as createViteServer } from "vite";
 import { Client } from "@notionhq/client";
 import { GoogleGenAI } from "@google/genai";
 import * as dotenv from "dotenv";
-import { readXlsFile } from "./services/xlsReader.ts";
+import path from "path";
+import { DEFAULT_DATA_DIR, readXlsFile, resolveLatestSpreadsheet } from "./services/xlsReader.ts";
 
 dotenv.config();
 
@@ -121,17 +122,17 @@ async function startServer() {
   // Endpoint para ler dados de arquivo XLS/XLSX
   app.get("/api/dashboard/xls", async (req, res) => {
     try {
-      const { filePath } = req.query;
-      
-      if (!filePath) {
-        return res.status(400).json({ 
-          error: "Parâmetro 'filePath' é obrigatório",
-          example: "/api/dashboard/xls?filePath=C:/Users/Joao/data.xlsx"
-        });
+      const { filePath, folderPath } = req.query;
+
+      if (filePath) {
+        const data = await readXlsFile(String(filePath));
+        return res.json({ ...data, sourceFile: String(filePath) });
       }
 
-      const data = await readXlsFile(String(filePath));
-      res.json(data);
+      const resolvedFolder = String(folderPath || DEFAULT_DATA_DIR);
+      const sourceFile = resolveLatestSpreadsheet(resolvedFolder);
+      const data = await readXlsFile(sourceFile);
+      res.json({ ...data, sourceFile, sourceFolder: resolvedFolder });
     } catch (error: any) {
       console.error("Erro ao ler XLS:", error);
       res.status(500).json({ error: error.message });
@@ -153,6 +154,11 @@ async function startServer() {
       console.error("Erro no upload:", error);
       res.status(500).json({ error: error.message });
     }
+  });
+
+  // Serve o dashboard HTML diretamente pela rota
+  app.get(["/dashboard", "/dashboard.html"], (_req, res) => {
+    res.sendFile(path.resolve(process.cwd(), "dashboard.html"));
   });
 
   // Vite middleware para desenvolvimento

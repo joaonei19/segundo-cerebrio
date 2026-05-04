@@ -29,7 +29,7 @@
     </header>
 
     <div class="controls">
-      <input id="filePath" type="text" placeholder="C:/Users/Joao/data/dados.xlsx" />
+      <input id="folderPath" type="text" placeholder="C:/Users/Joao/Documents/Relatório HD/relatorio-HD-Store/hdstore_updater/dados" style="min-width:540px" />
       <button id="loadBtn">Atualizar</button>
       <div id="status" class="muted small">Pronto</div>
     </div>
@@ -39,6 +39,12 @@
       <div class="card"><div class="muted">Média</div><div id="average" style="font-weight:700;font-size:22px">—</div></div>
       <div class="card"><div class="muted">Registros</div><div id="count" style="font-weight:700;font-size:22px">—</div></div>
       <div class="card"><div class="muted">Última Atualização</div><div id="lastUpdated" style="font-weight:700;font-size:14px">—</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="muted">Arquivo ativo</div>
+      <div id="sourceFile" style="font-weight:700;font-size:14px;word-break:break-all">—</div>
+      <div class="muted" id="sourceFolder" style="margin-top:6px">—</div>
     </div>
 
     <div class="card" style="margin-bottom:16px">
@@ -60,11 +66,13 @@
     <script>
       const loadBtn = document.getElementById('loadBtn');
       const statusEl = document.getElementById('status');
-      const filePathInput = document.getElementById('filePath');
+      const folderPathInput = document.getElementById('folderPath');
       const totalEl = document.getElementById('total');
       const avgEl = document.getElementById('average');
       const countEl = document.getElementById('count');
       const lastEl = document.getElementById('lastUpdated');
+      const sourceFileEl = document.getElementById('sourceFile');
+      const sourceFolderEl = document.getElementById('sourceFolder');
       const dataTable = document.getElementById('dataTable');
       const execSummary = document.getElementById('execSummary');
 
@@ -72,10 +80,12 @@
 
       function setStatus(t){ statusEl.textContent = t }
 
-      async function load(filePath){
+      async function load(folderPath){
         try{
           setStatus('Carregando...');
-          const url = `http://localhost:3000/api/dashboard/xls?filePath=${encodeURIComponent(filePath)}`;
+          const url = folderPath
+            ? `/api/dashboard/xls?folderPath=${encodeURIComponent(folderPath)}`
+            : '/api/dashboard/xls';
           const res = await fetch(url);
           if(!res.ok) throw new Error(await res.text());
           const data = await res.json();
@@ -93,6 +103,8 @@
         avgEl.textContent = Number(d.summary.average || 0).toLocaleString('pt-BR');
         countEl.textContent = (d.metrics||[]).length;
         lastEl.textContent = d.summary.lastUpdated ? new Date(d.summary.lastUpdated).toLocaleString('pt-BR') : '-';
+        sourceFileEl.textContent = d.sourceFile || '—';
+        sourceFolderEl.textContent = d.sourceFolder ? `Pasta: ${d.sourceFolder}` : 'Fonte: pasta padrão do servidor';
 
         // Table
         const metrics = d.metrics || [];
@@ -141,15 +153,17 @@
       }
 
       loadBtn.addEventListener('click', ()=>{
-        const p = filePathInput.value.trim() || './data/dados.xlsx';
+        const p = folderPathInput.value.trim();
         load(p);
-        localStorage.setItem('xls-path', p);
+        localStorage.setItem('xls-folder-path', p);
       });
 
       // If saved path in localStorage, populate
       document.addEventListener('DOMContentLoaded', ()=>{
-        const saved = localStorage.getItem('xls-path');
-        if(saved) filePathInput.value = saved;
+        const saved = localStorage.getItem('xls-folder-path');
+        if(saved) folderPathInput.value = saved;
+        else folderPathInput.value = 'C:/Users/Joao/Documents/Relatório HD/relatorio-HD-Store/hdstore_updater/dados';
+        load(folderPathInput.value.trim());
       });
     </script>
   </body>
